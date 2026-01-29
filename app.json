@@ -1,0 +1,49 @@
+{
+  "expo": {
+    "scheme": "superposition-chat",
+    "name": "Superposition Chat",
+    "slug": "superposition-chat",
+    "version": "1.0.3",
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "experiments": {
+      "tsconfigPaths": true
+    },
+    "plugins": [
+      "expo-router",
+      "expo-sqlite"
+    ],
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false
+    },
+    "android": {
+      "softwareKeyboardLayoutMode": "resize",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.jply_xyz.superpositionchat",
+      "googleServicesFile": "./google-services.json",
+      "useNextNotificationsApi": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "ff3ee377-5681-4325-a77a-643294d8de84"
+      }
+    },
+    "owner": "jply_xyz"
+  }
+}
