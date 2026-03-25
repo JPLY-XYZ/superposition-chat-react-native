@@ -1,7 +1,7 @@
 import { View, Text } from 'react-native'
 import React from 'react'
 import { useAuth } from 'context/AuthContext';
-import { FontAwesome5, FontAwesome6} from '@expo/vector-icons';
+import { FontAwesome5, FontAwesome6 } from '@expo/vector-icons';
 import GlitchStatusIcon from 'components/GlitchStatusIcon';
 
 const ChatMessage = ({ message }) => {
@@ -11,9 +11,7 @@ const ChatMessage = ({ message }) => {
   const isOwnMessage = message?.senderId === user?.id;
 
   const getBubbleStyle = () => {
-    if (!isOwnMessage) {
-      return ;
-    }
+    if (!isOwnMessage || message.type == "info") return null; // No mostramos checks en mensajes de info
 
     // 2. Si es MI mensaje, estilo según el status
     switch (message.status) {
@@ -42,19 +40,32 @@ const ChatMessage = ({ message }) => {
     ? msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) // Ej: 14:30
     : msgDate.toLocaleString([], { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); // Ej: 16/01 14:30
 
+
+  if (message.type == "info") {
+    return (
+      <View className="items-center my-4 px-10">
+        <View className="bg-slate-900/50 px-4 py-1.5 rounded-full border border-slate-800">
+          <Text className="text-slate-400 text-[11px] text-center italic leading-4">
+            {message.content}
+          </Text>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View onPress={() => console.log(message)} className={`flex-row mb-3 ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
       <View className={`max-w-[80%] px-4 py-3 rounded-2xl shadow-sm bg-slate-800 border border-slate-700 rounded-tl-none`}>
         <Text className="text-white text-base leading-6">
           {message.content}
         </Text>
-        <View className="flex-row items-center gap-2">  
-        <Text
-          className={`text-[10px] mt-1 flex-row items-center gap-2 text-right ${isOwnMessage ? 'text-cyan-400' : 'text-slate-400'}`}
-        >
-          {timeString} 
-        </Text>
-        {getBubbleStyle()}
+        <View className="flex-row items-center gap-2">
+          <Text
+            className={`text-[10px] mt-1 flex-row items-center gap-2 text-right ${isOwnMessage ? 'text-cyan-400' : 'text-slate-400'}`}
+          >
+            {timeString}
+          </Text>
+          {getBubbleStyle()}
         </View>
       </View>
     </View>

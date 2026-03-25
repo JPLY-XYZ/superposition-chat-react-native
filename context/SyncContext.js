@@ -6,6 +6,7 @@ import { conversationService } from 'services/conversationService';
 import { DeviceEventEmitter } from 'react-native';
 import { syncService } from 'services/syncService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { decryptMessage } from 'services/cryptoService';
 
 const SyncContext = createContext();
 
@@ -17,36 +18,35 @@ export const SyncProvider = ({ children }) => {
     const isSyncingRef = useRef(false);
 
     useEffect(() => {
-        // Solo intentamos si tenemos todo lo necesario
-        if (user && online && socket) {
+        // 1. Función de sincronización segura
+        const runSync = async () => {
+            if (user && online && socket?.connected) { // Usamos .connected para mayor seguridad
+                await forceSync();
+            }
+        };
 
-            const performSync = async () => {
-                //si ya se esta sincronizando, no hacemos nada
-                if (isSyncingRef.current) {
-                    return;
-                }
+        if (socket) {
+            // 2. DISPARADOR: Cuando el socket se conecta (o se reconecta)
+            socket.on('connect', () => {
+                console.log("SYNC-CONTEXT: Socket conectado, forzando sincronización...");
+                runSync();
+            });
 
-                // Ponemos el semáforo en ROJO
-                isSyncingRef.current = true;
+            // 3. DISPARADOR: Cuando llegan datos nuevos en tiempo real
+            socket.on('notify_new_data', () => {
+                console.log("SYNC-CONTEXT: Notificación de nuevos datos recibida");
+                runSync();
+            });
 
-                try {
-                    //procesamos lo que esta en la bandeja de salida
-                    await processOutbox();
+            // 4. Intento inicial por si ya estaba conectado
+            runSync();
 
-                    //procesamos lo que esta en la bandeja de entrada
-                    await processInbox();
-                } catch (error) {
-                    console.error("SYNC-CONTEXT ERROR - performSync: ", error);
-                } finally {
-                    // Ponemos el semáforo en VERDE
-                    isSyncingRef.current = false;
-                }
+            return () => {
+                socket.off('connect');
+                socket.off('notify_new_data');
             };
-
-            // Ejecutamos la función
-            performSync();
         }
-    }, [online, socket, user]);
+    }, [socket, online, user]);
 
     // Función para procesar la bandeja de salida
     const processOutbox = async () => {
@@ -199,7 +199,8 @@ export const SyncProvider = ({ children }) => {
         if (messages.length > 0) {
 
             console.log("MESSAGES DESCARGADOS: " + messages.length + " - " + JSON.stringify(messages));
-
+            // 1. Variable de control para el aviso único
+            let hasShownEncryptionWarning = false;
             //Recorremos las conversaciones pendientes
             for (const message of messages) {
                 //Obtenemos los participantes de la conversación
@@ -209,32 +210,51 @@ export const SyncProvider = ({ children }) => {
 
                 // 2. Si existe, saltamos este mensaje y no hacemos nada más
                 if (existingMessage) {
-                    continue;
+                    return;
                 }
                 let preSaveMessage;
-                if (message.senderId === user.id) {
-                    preSaveMessage = {
-                        messageId: message.id,
-                        conversationId: message.conversationId,
-                        senderId: message.senderId,
-                        content: message.content,
-                        createdAt: message.createdAt,
-                        status: 'superposed',
-                        is_synced: 1,
-                        type: message.type,
-                    };
-                } else {
 
+                const decryptedText = await decryptMessage(message.content)
+
+                if (decryptedText == "MENSAJE CIFRADO") {
+                    if (hasShownEncryptionWarning) return;
                     preSaveMessage = {
                         messageId: message.id,
                         conversationId: message.conversationId,
                         senderId: message.senderId,
-                        content: message.content,
+                        content: "HAY " + messages.length + " MENSAJES CIFRADOS ANTERIORES AL MOMENTO ACTUAL",
                         createdAt: message.createdAt,
                         status: 'received',
                         is_synced: 1,
-                        type: message.type,
+                        type: "info",
                     };
+                    hasShownEncryptionWarning = true; // Marcamos que ya se generó el aviso
+                } else {
+
+                    if (message.senderId === user.id) {
+                        preSaveMessage = {
+                            messageId: message.id,
+                            conversationId: message.conversationId,
+                            senderId: message.senderId,
+                            content: decryptedText,
+                            createdAt: message.createdAt,
+                            status: 'superposed',
+                            is_synced: 1,
+                            type: message.type,
+                        };
+                    } else {
+
+                        preSaveMessage = {
+                            messageId: message.id,
+                            conversationId: message.conversationId,
+                            senderId: message.senderId,
+                            content: decryptedText,
+                            createdAt: message.createdAt,
+                            status: 'received',
+                            is_synced: 1,
+                            type: message.type,
+                        };
+                    }
                 }
 
                 await MessageQueries.saveMessage(preSaveMessage);
@@ -292,7 +312,7 @@ export const SyncProvider = ({ children }) => {
 
         isSyncingRef.current = true;
         try {
-            await processOutbox(); // Añadir await
+            // await processOutbox(); // Añadir await
             await processInbox();  // Añadir await
         } finally {
             isSyncingRef.current = false;

@@ -1,8 +1,10 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, TouchableOpacity, ToastAndroid, Platform, Alert } from 'react-native';
+import * as Clipboard from 'expo-clipboard';
 import QRCode from 'react-native-qrcode-svg';
 import { useAuth } from 'context/AuthContext';
 import { generateRandomString } from 'lib/utils';
+import { Ionicons } from '@expo/vector-icons'
 
 const MyQRCode = () => {
   const { user } = useAuth();
@@ -10,6 +12,25 @@ const MyQRCode = () => {
   if (!user?.id) return null;
 
   const ramdomString = generateRandomString(40);
+
+  const copyToClipboard = async () => {
+    if (user?.code) {
+      await Clipboard.setStringAsync(user.code);
+
+      // Lógica de Toast Nativo
+      if (Platform.OS === 'android') {
+        ToastAndroid.showWithGravity(
+          "Código copiado",
+          ToastAndroid.SHORT,
+          ToastAndroid.CENTER
+        );
+      } else {
+        // iOS no tiene Toast nativo, se suele usar un Alert simple 
+        // o puedes omitirlo si prefieres una respuesta visual custom
+        console.log("Copiado en iOS");
+      }
+    }
+  };
 
   return (
     <View className="items-center justify-center ">
@@ -23,7 +44,7 @@ const MyQRCode = () => {
       <View className="relative mb-8">
 
         {/* Efecto de Glow/Resplandor detrás del QR */}
-        
+
 
         {/* Marco Principal */}
         <View className="p-4 bg-white rounded-2xl border-2 border-cyan-500 ">
@@ -33,6 +54,8 @@ const MyQRCode = () => {
             color="#0A0E1A"         // Puntos color Azul Noche (el fondo de tu app)
             backgroundColor="white" // Fondo blanco para máximo contraste
           />
+
+
         </View>
 
         {/* DECORACIÓN TECH (ESQUINAS FLOTANTES) */}
@@ -47,29 +70,17 @@ const MyQRCode = () => {
 
       </View>
 
-      {/* INFORMACIÓN DE TEXTO */}
-      {/* <View className="mt-8 items-center w-full">
-        <Text className="text-gray-500 text-[10px] uppercase tracking-widest mb-2 font-semibold">
-          Identificador de Onda
+      <TouchableOpacity
+        onPress={copyToClipboard}
+        activeOpacity={0.7}
+        className="flex-row items-center justify-center mb-8 bg-slate-800/50 py-3 px-6 rounded-2xl border border-slate-700 shadow-lg"
+      >
+        <Text className='text-xl text-white font-extrabold tracking-[3px] uppercase opacity-90 mr-4'>
+          {user?.code}
         </Text>
-         */}
-      {/* Caja del ID estilo terminal */}
-      {/* <View className="bg-[#0A0E1A] px-4 py-2 rounded-lg border border-gray-700/50 w-full">
-            <Text 
-                className="text-white font-mono text-center text-xs font-bold tracking-wider" 
-                numberOfLines={1} 
-                ellipsizeMode="middle"
-            >
-            {user.id}
-            </Text>
-        </View> */}
 
-      {/* {user.username && (
-            <Text className="text-cyan-600 mt-4 font-bold text-lg tracking-wide">
-                @{user.username}
-            </Text>
-        )}
-      </View> */}
+        <Ionicons name="copy" size={20} color="#22d3ee" strokeWidth={2.5} />
+      </TouchableOpacity>
 
     </View>
   );

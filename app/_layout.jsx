@@ -128,13 +128,13 @@ function RootLayoutNav() {
 
 
   useEffect(() => {
-  // Guardamos la fecha actual cada 10 segundos
-  const intervalo = setInterval(() => {
-    AsyncStorage.setItem('@lastConexionTimestamp', String(Date.now()));
-  }, 10000);
+    // Guardamos la fecha actual cada 10 segundos
+    const intervalo = setInterval(() => {
+      AsyncStorage.setItem('@lastConexionTimestamp', String(Date.now()));
+    }, 10000);
 
-  return () => clearInterval(intervalo);
-}, []);
+    return () => clearInterval(intervalo);
+  }, []);
 
 
   if (loading) {
@@ -178,9 +178,9 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <SocketProvider>
-        <SyncProvider>
-          <RootLayoutNav />
-        </SyncProvider>
+
+        <RootLayoutNav />
+
       </SocketProvider>
     </AuthProvider>
   );

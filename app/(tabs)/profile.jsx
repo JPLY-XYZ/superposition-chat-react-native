@@ -24,6 +24,8 @@ export default function Profile() {
     loadStats();
   }, []);
 
+  
+
   return (
     <View
       className="flex-1 bg-[#0A0E1A] p-8"
@@ -76,57 +78,12 @@ export default function Profile() {
       <View>
         {/* Selector de Fase (Botón de intercambio) */}
 
-<View className="flex-row bg-[#0A0E1A] p-1 rounded-2xl border border-slate-800 mb-4">
-    <TouchableOpacity 
-      onPress={() => setIsFirma(true)}
-      className={`flex-1 py-2 rounded-xl ${isFirma ? 'bg-cyan-500' : ''}`}
-    >
-      <Text className={`text-center font-bold text-xs ${isFirma ? 'text-slate-950' : 'text-slate-500'}`}>
-        FIRMA
-      </Text>
-    </TouchableOpacity>
-    <TouchableOpacity 
-      onPress={() => setIsFirma(false)}
-      className={`flex-1 py-2 rounded-xl ${!isFirma ? 'bg-[#FF00FF]' : ''}`}
-    >
-      <Text className={`text-center font-bold text-xs ${!isFirma ? 'text-slate-950' : 'text-slate-500'}`}>
-        STATS
-      </Text>
-    </TouchableOpacity>
-  </View>
+
         {/* Contenedor Dinámico */}
 
-        {isFirma ? (
-          /* VISTA A: Firma Digital QR */
-          <MyQRCode />
-        ) : (
-          /* VISTA B: Panel de Control de Datos */
-          <View>
-            <Text className="text-cyan-500/50 text-[10px] font-mono tracking-[2px] mb-6 uppercase">
-              Panel_Control_Datos
-            </Text>
 
-            <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-slate-400 font-mono text-xs">Total Conversaciones</Text>
-              <Text className="text-white font-bold text-lg">{stats?.numChats || 0}</Text>
-            </View>
+        <MyQRCode />
 
-            <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-slate-400 font-mono text-xs">Contactos Registrados</Text>
-              <Text className="text-cyan-500 font-bold text-lg">{stats?.numContacts || 0}</Text>
-            </View>
-
-            <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-slate-400 font-mono text-xs">Mensajes en Bucle</Text>
-              <Text className="text-[#FF00FF] font-bold text-lg">{stats?.numUnsynced || 0}</Text>
-            </View>
-
-            <View className="flex-row justify-between items-center">
-              <Text className="text-slate-400 font-mono text-xs">Total Mensajes</Text>
-              <Text className="text-white font-bold text-lg">{stats?.totalMessages || 0}</Text>
-            </View>
-          </View>
-        )}
 
       </View>
 

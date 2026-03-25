@@ -2,18 +2,20 @@ import { View, FlatList, KeyboardAvoidingView, Platform, Keyboard, DeviceEventEm
 import ChatPageHeader from 'components/chats/insideChat/ChatPageHeader';
 import ChatMessage from 'components/chats/insideChat/ChatMessage';
 import ChatInput from 'components/chats/insideChat/ChatInput';
-import { ChatQueries, MessageQueries } from 'lib/database/db';
+import { ChatQueries, MessageQueries, UserQueries } from 'lib/database/db';
 import { useCallback, useEffect, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { useAuth } from 'context/AuthContext';
 import { getUUID } from 'lib/utils';
 import { useSocket } from 'context/SocketContext';
 import { useIsFocused } from '@react-navigation/native'
+import { usersService } from 'services/usersService';
+import { encryptMessage } from 'services/cryptoService';
 
 export default function Chat() {
 
   const { id } = useLocalSearchParams();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const { socket, online } = useSocket();
   const isFocused = useIsFocused();
 
@@ -99,6 +101,23 @@ export default function Chat() {
   const handleSendMessage = async (text) => {
     if (!text.trim()) return;
 
+    //obtener el usuario actual del Server (puede haber actualizado algo)
+
+    const userData = await usersService.getUserFromServer(token, { id: chat?.participants?.find(participant => participant !== user?.id) });
+
+    console.log(userData)
+
+    await UserQueries.upsertUser({
+      id: userData.id,
+      displayName: userData.displayName,
+      imageUrl: userData.imageUrl,
+      isMe: 0,
+      code: userData.code,
+      publicKey: userData.publicKey,
+    });
+
+    const ecriptedText = encryptMessage(text, userData.publicKey)
+
     // Crear el objeto del mensaje
     const newMessage = {
       messageId: getUUID(),
@@ -125,7 +144,7 @@ export default function Chat() {
             id: newMessage.messageId,
             conversationId: newMessage.conversationId,
             senderId: newMessage.senderId,
-            content: newMessage.content,
+            content: ecriptedText,
             type: newMessage.type,
             createdAt: newMessage.createdAt,
           }, async (response) => {
