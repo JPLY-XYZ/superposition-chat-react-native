@@ -98,7 +98,7 @@ export default function Chat() {
 
 
   // función para enviar mensaje
-  const handleSendMessage = async (text) => {
+  const handleSendMessage = async (text, type) => {
     if (!text.trim()) return;
 
     //obtener el usuario actual del Server (puede haber actualizado algo)
@@ -123,7 +123,7 @@ export default function Chat() {
       messageId: getUUID(),
       conversationId: id,
       senderId: user.id,
-      type: 'text',
+      type: type,
       content: text,
       createdAt: new Date().toISOString(),
       status: 'pending',
@@ -149,11 +149,18 @@ export default function Chat() {
             createdAt: newMessage.createdAt,
           }, async (response) => {
 
+
             if (response.success) {
               //actualizamos el estado del mensaje a enviado
               await MessageQueries.updateMessageStatus({ messageId: newMessage.messageId, status: "sent" });
               //marcamso el mensaje como sincronizado
               await MessageQueries.markAsSynced(newMessage.messageId);
+
+              await ChatQueries.setLastConversationMessage(newMessage.conversationId, {
+                text: text,
+                senderId: user.id,
+                status: "sent"
+              });
               //actualizamos la lista de mensajes
               setMessages(current =>
                 current.map(m => m.messageId === newMessage.messageId ? { ...m, status: 'sent', is_synced: 1 } : m)
@@ -163,6 +170,8 @@ export default function Chat() {
             }
             resolve();
           });
+
+
         })
       }
 
@@ -202,7 +211,7 @@ export default function Chat() {
               <ChatMessage message={item} />
             )}
           />
-          <ChatInput onSend={(text) => handleSendMessage(text)} />
+          <ChatInput onSend={(text, type) => handleSendMessage(text, type)} />
         </View>
       </KeyboardAvoidingView>
     </View>

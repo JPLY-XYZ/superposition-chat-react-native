@@ -120,6 +120,14 @@ export const SocketProvider = ({ children }) => {
                         type: serverMsg.type || 'text'
                     });
 
+                    console.log("mensaje de :",serverMsg.senderId)
+
+                    await ChatQueries.setLastConversationMessage(serverMsg.conversationId, {
+                        text: decryptedText,
+                        senderId: serverMsg.senderId,
+                        status: initialStatus
+                    });
+
                     // SOLO emitimos el status_update si el mensaje NO es nuestro
                     if (serverMsg.senderId !== user.id) {
                         newSocket.emit('message_status_update', {

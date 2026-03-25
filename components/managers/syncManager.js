@@ -18,6 +18,9 @@ export const performGlobalSync = async (socket, token, user) => {
     if (isSyncing || !socket?.connected || !token || !user) return;
 
     isSyncing = true;
+
+
+
     try {
         const unsyncedData = await syncService.getUnsyncedDataFromServer(token);
         const { messages, conversations, messageUpdates } = unsyncedData;
@@ -48,40 +51,72 @@ export const performGlobalSync = async (socket, token, user) => {
             }, user.id);
         }
 
+        let mensajesCifradosEnviado = false
         // --- MENSAJES ---
         for (const msg of messages) {
             const exists = await MessageQueries.getMessageById(msg.id);
 
-            if (!exists) {
-                const text = await decryptMessage(msg.content);
-                await MessageQueries.saveMessage({
-                    messageId: msg.id,
-                    conversationId: msg.conversationId,
-                    senderId: msg.senderId,
-                    content: text,
-                    createdAt: msg.createdAt,
-                    status: msg.status, // Ya viene calculado del servidor
-                    is_synced: 1,
-                    type: msg.type
-                });
-            } else {
-                // Si ya existe, actualizamos solo si el estado del server es "mejor"
-                if (shouldUpdateStatus(exists.status, msg.status)) {
-                    await MessageQueries.updateMessageStatus({
-                        messageId: msg.id,
-                        status: msg.status.toLowerCase()
+            const decifrado = await decryptMessage(msg.content);
+            if (decifrado === "MENSAJE CIFRADO") {
+
+                if (!mensajesCifradosEnviado) {
+                    await MessageQueries.saveMessage({
+                        messageId: "nunId",
+                        conversationId: msg.conversationId,
+                        senderId: msg.senderId,
+                        content: "HAY UN TOTAL DE " + messages.length + " CIFRADOS",
+                        createdAt: msg.createdAt,
+                        status: null, // Ya viene calculado del servidor
+                        is_synced: 1,
+                        type: "info"
+                    });
+                    await ChatQueries.setLastConversationMessage(msg.conversationId, {
+                        text: "HAY UN TOTAL DE " + messages.length + " CIFRADOS",
+                        senderId: msg.senderId,
+                        status: "read"
                     });
                 }
-            }
 
-            // Si el mensaje es de OTRO, le avisamos al server que lo recibimos
-            if (msg.senderId !== user.id) {
-                socket.emit('message_status_update', {
-                    messageId: msg.id,
-                    status: 'RECEIVED',
-                    userId: user.id,
-                    senderId: msg.senderId
-                });
+                mensajesCifradosEnviado = true
+
+
+            } else {
+
+                if (!exists) {
+                    await MessageQueries.saveMessage({
+                        messageId: msg.id,
+                        conversationId: msg.conversationId,
+                        senderId: msg.senderId,
+                        content: decifrado,
+                        createdAt: msg.createdAt,
+                        status: msg.status, // Ya viene calculado del servidor
+                        is_synced: 1,
+                        type: msg.type
+                    });
+                    await ChatQueries.setLastConversationMessage(msg.conversationId, {
+                        text: decifrado,
+                        senderId: msg.senderId,
+                        status: msg.status
+                    });
+                } else {
+                    // Si ya existe, actualizamos solo si el estado del server es "mejor"
+                    if (shouldUpdateStatus(exists.status, msg.status)) {
+                        await MessageQueries.updateMessageStatus({
+                            messageId: msg.id,
+                            status: msg.status.toLowerCase()
+                        });
+                    }
+                }
+
+                // Si el mensaje es de OTRO, le avisamos al server que lo recibimos
+                if (msg.senderId !== user.id) {
+                    socket.emit('message_status_update', {
+                        messageId: msg.id,
+                        status: 'RECEIVED',
+                        userId: user.id,
+                        senderId: msg.senderId
+                    });
+                }
             }
         }
 

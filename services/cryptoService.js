@@ -63,7 +63,7 @@ export const decryptMessage = async (encryptedText) => {
 
         return decrypted.toString('utf8');
     } catch (error) {
-        console.error("ERROR AL DESCIFRAR", error)
+        // console.error("ERROR AL DESCIFRAR", error)
         return "MENSAJE CIFRADO"
     }
 
