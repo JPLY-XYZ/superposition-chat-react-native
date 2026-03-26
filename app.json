@@ -3,7 +3,7 @@
     "scheme": "superposition-chat",
     "name": "Superposition Chat",
     "slug": "superposition-chat",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "web": {
       "favicon": "./assets/favicon.png",
       "bundler": "metro"

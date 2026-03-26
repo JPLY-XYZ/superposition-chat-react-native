@@ -95,32 +95,7 @@ const SettingsScreen = () => {
         }
     };
 
-    // --- PROTOCOLOS DE BORRADO ---
-    const triggerWipeLocal = () => {
-        setConfirmConfig({
-            title: "WIPE_LOCAL",
-            message: "Se eliminarán todos los datos del terminal y se cerrará la sesión actual. ¿Proceder?",
-            type: 'info',
-            onConfirm: async () => {
-                await AsyncStorage.clear();
-                await logout();
-            }
-        });
-        setConfirmVisible(true);
-    };
 
-    const triggerWipeServer = () => {
-        setConfirmConfig({
-            title: "PURGE_SERVER",
-            message: "ATENCIÓN: Se eliminará tu identidad digital del nodo central de forma irreversible.",
-            type: 'error',
-            onConfirm: async () => {
-                // Aquí iría la llamada a borrar cuenta en el nodo
-                await logout();
-            }
-        });
-        setConfirmVisible(true);
-    };
 
     // Estilos del Modal
     const isError = confirmConfig.type === 'error';
@@ -131,38 +106,6 @@ const SettingsScreen = () => {
     return (
         <View className="flex-1 bg-[#0A0E1A]">
 
-            <Modal visible={confirmVisible} transparent animationType="fade">
-                <View className="flex-1 justify-center items-center bg-[#0A0E1A]/90 px-8">
-                    <View
-                        style={{ shadowColor: accentHex, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.3, shadowRadius: 15 }}
-                        className={`bg-[#0A0E1A] w-full p-8 rounded-3xl border-[1.5px] ${accentBorder}`}
-                    >
-                        <View className="mb-4">
-                            <GlitchText className="text-center">{confirmConfig.title}</GlitchText>
-                        </View>
-                        <Text className="text-slate-300 text-base mb-8 text-center leading-6 font-medium">
-                            {confirmConfig.message}
-                        </Text>
-                        <View className="flex-row space-x-3">
-                            <TouchableOpacity
-                                onPress={() => setConfirmVisible(false)}
-                                className="flex-1 border border-slate-700 py-4 rounded-2xl items-center"
-                            >
-                                <Text className="text-slate-500 font-bold tracking-widest text-[10px]">ABORTAR</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                onPress={() => {
-                                    setConfirmVisible(false);
-                                    confirmConfig.onConfirm();
-                                }}
-                                className={`flex-1 ${accentBg} py-4 rounded-2xl items-center`}
-                            >
-                                <Text className="text-[#0A0E1A] font-black tracking-widest text-[10px]">CONFIRMAR</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
 
             <ScrollView className="flex-1 p-6 mt-10" contentContainerStyle={{ paddingBottom: 150 }}>
                 <View className="items-center mb-8 mt-4">
@@ -188,10 +131,11 @@ const SettingsScreen = () => {
                         <Text className="text-slate-300">Notificaciones</Text>
                         <QuantumToggle value={notifications} onChange={handleNotificationChange} labelLeft="OFF" labelRight="ON" />
                     </View>
-                    <View className="flex-row justify-between items-center py-3">
+                    {/* <View className="flex-row justify-between items-center py-3">
                         <Text className="text-slate-300">Modo Visual</Text>
                         <QuantumToggle value={isDarkMode} onChange={handleModeChange} labelLeft="LIGHT" labelRight="DARK" activeColor="#FF00FF" />
                     </View>
+                     */}
                 </View>
 
                 {/* --- SECCIÓN IDENTIDAD --- */}
