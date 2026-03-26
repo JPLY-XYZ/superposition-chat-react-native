@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "935029902744",
+    "project_id": "superposition-chat",
+    "storage_bucket": "superposition-chat.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:935029902744:android:4dd2556ac0d5c88082efed",
+        "android_client_info": {
+          "package_name": "com.jply_xyz.superpositionchat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAiUYVU6h6gwG2NqAhsBNavm_Gvv0BWWCY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
