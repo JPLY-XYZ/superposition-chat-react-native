@@ -1,15 +1,16 @@
+import { getSettings } from "lib/auth/storage";
 import { generateAndStoreKeyPair } from "./cryptoService";
 
 export const authService = {
   login: async (email, password) => {
 
-    console.log("email", email);
-    console.log("password", password);
+    const { API_URL } = await getSettings();
 
     const publicKey = await generateAndStoreKeyPair();
 
+
     try {
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/auth/login`, {
+      const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, publicKey }),
@@ -29,12 +30,11 @@ export const authService = {
 
 
   register: async (email, password) => {
-    try {
-
+    try {      const { API_URL } = await getSettings();
 
       const publicKey = await generateAndStoreKeyPair();
 
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/auth/register`, {
+      const response = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password, publicKey }),

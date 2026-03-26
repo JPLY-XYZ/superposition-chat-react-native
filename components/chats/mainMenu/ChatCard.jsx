@@ -81,7 +81,7 @@ const ChatCard = ({ chat }) => {
                     <Text className="text-slate-500 text-xs">
                         {chat.updatedAt
                             ? new Date(chat.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                            : '--:--'}
+                            : '88:88'}
                     </Text>
                 </View>
 
@@ -95,7 +95,7 @@ const ChatCard = ({ chat }) => {
                             ? lastMsgData.text.startsWith('http')
                                 ? (isLastMessageMine ? `Tú: Entidad cifrada` : "Entidad cifrada")
                                 : (isLastMessageMine ? `Tú: ${lastMsgData.text}` : lastMsgData.text)
-                            : "Mensajes te esperan..."}
+                            : "ESTE CHAT ESTA CIFRADO"}
                     </Text>
 
                     {/* Punto Azul */}

@@ -1,8 +1,11 @@
+import { getSettings } from "lib/auth/storage";
+
 export const messagesService = {
 changeMessageStatus: async (token, messageId, status) => {
         try {
 
-            const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/messages/changeStatus`, {
+            const { API_URL } = await getSettings();
+            const response = await fetch(`${API_URL}/messages/changeStatus`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -28,7 +31,8 @@ changeMessageStatus: async (token, messageId, status) => {
 
     getUnReceivedMessages: async (token) => {
     try {
-        const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/messages/getUnReceivedMessages`, {
+        const { API_URL } = await getSettings();
+        const response = await fetch(`${API_URL}/messages/getUnReceivedMessages`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -59,9 +63,9 @@ changeMessageStatus: async (token, messageId, status) => {
 
 getUserServerUnsyncedMessages: async (token, lastMessageSyncedDate) => {
         try {
-            // Pasamos el contactId en la URL usando ?contactId=...
+            const { API_URL } = await getSettings();
             const response = await fetch(
-                `${process.env.EXPO_PUBLIC_API_URL}/messages/sync/?lastMess=${lastMessageSyncedDate}`, 
+                `${API_URL}/messages/sync/?lastMess=${lastMessageSyncedDate}`, 
                 {
                     method: 'GET',
                     headers: {

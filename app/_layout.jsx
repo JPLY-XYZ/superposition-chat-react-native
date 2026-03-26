@@ -150,7 +150,10 @@ function RootLayoutNav() {
       <Stack.Screen name="index" options={{ headerShown: false }} />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="settings/auth" options={{ headerTitle: "AUTH", headerShown: false }} />
-      <Stack.Screen name="settings/settings" options={{ headerTitle: "Settings" }} />
+      <Stack.Screen name="settings/settings" options={{
+        headerTitle: "Settings", headerStyle: { backgroundColor: '#020617' },
+        headerTintColor: '#fff', headerShown: false
+      }} />
       <Stack.Screen name="settings/newProfile" options={{ headerShown: false }} />
       <Stack.Screen name="settings/scanBox" options={{ headerShown: false }} />
       <Stack.Screen

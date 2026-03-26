@@ -72,6 +72,8 @@ export const AuthProvider = ({ children }) => {
       //Limpiamos almacenamiento
       await AsyncStorage.removeItem('@token');
 
+      await AsyncStorage.removeItem('APP_SETTINGS');
+
       //Limpiamos la clave privada  //TODO: descomentar en produccion
       // await removeClavePrivada();
 

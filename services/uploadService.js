@@ -1,10 +1,12 @@
 // IMPORTANTE: Añadimos '/legacy' al final
 import * as FileSystem from 'expo-file-system/legacy';
+import { getSettings } from 'lib/auth/storage';
 
 export const uploadFileToServer = async (uri, token) => {
+    const { API_URL } = await getSettings();
     try {
         const response = await FileSystem.uploadAsync(
-            `${process.env.EXPO_PUBLIC_API_URL}/upload`,
+            `${API_URL}/upload`,
             uri,
             {
                 httpMethod: 'POST',

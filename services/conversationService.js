@@ -1,12 +1,12 @@
+import { getSettings } from "lib/auth/storage";
 
 export const conversationService = {
     findExistingConversationOnServer: async (token, contactId) => {
         try {
 
-            console.log("token", token);
-            console.log("contactId", contactId);
+            const { API_URL } = await getSettings();;
 
-            const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/conversations/getExistingConversation`, {
+            const response = await fetch(`${API_URL}/conversations/getExistingConversation`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -33,8 +33,9 @@ export const conversationService = {
     sendConversationToServer: async (token, conversation) => {
         try {
 
+            const { API_URL } = await getSettings();
 
-            const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/conversations/`, {
+            const response = await fetch(`${API_URL}/conversations/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -60,9 +61,9 @@ export const conversationService = {
     },
     getUserServerUnsyncedChats: async (token, lastConvSyncedDate) => {
         try {
-            // Pasamos el contactId en la URL usando ?contactId=...
+            const { API_URL } = await getSettings();
             const response = await fetch(
-                `${process.env.EXPO_PUBLIC_API_URL}/conversations/?lastConv=${lastConvSyncedDate}`, 
+                `${API_URL}/conversations/?lastConv=${lastConvSyncedDate}`,
                 {
                     method: 'GET',
                     headers: {
@@ -73,7 +74,7 @@ export const conversationService = {
             );
 
             const data = await response.json();
-            
+
             if (response.status === 404) return null;
             if (!response.ok) throw new Error(data.error);
 

@@ -64,14 +64,14 @@ export const performGlobalSync = async (socket, token, user) => {
                         messageId: "nunId",
                         conversationId: msg.conversationId,
                         senderId: msg.senderId,
-                        content: "HAY UN TOTAL DE " + messages.length + " CIFRADOS",
+                        content: "ESTE CHAT ESTA CIFRADO",
                         createdAt: msg.createdAt,
                         status: null, // Ya viene calculado del servidor
                         is_synced: 1,
                         type: "info"
                     });
                     await ChatQueries.setLastConversationMessage(msg.conversationId, {
-                        text: "HAY UN TOTAL DE " + messages.length + " CIFRADOS",
+                        text: "ESTE CHAT ESTA CIFRADO",
                         senderId: msg.senderId,
                         status: "read"
                     });

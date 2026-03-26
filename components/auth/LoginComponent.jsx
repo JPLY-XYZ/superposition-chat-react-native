@@ -5,33 +5,36 @@ import { useAuth } from 'context/AuthContext';
 import { revisarConexion } from 'lib/utils';
 import CustomAlert from 'components/customAlert';
 
-const LoginComponent = () => {
+// CORRECCIÓN: usable debe ir entre llaves { usable } para desestructurar las props
+const LoginComponent = ({ usable = false }) => {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const alertRef = useRef(null);
 
-const handleLogin = async () => {
+  const handleLogin = async () => {
+    // Protección extra por si acaso
+    if (!usable) return;
 
-   const isOnline = await revisarConexion();
-  
-      if (!isOnline) {
-       alertRef.current.show("Error de conexion", "No hemos detectado internet. Revisa tu red.");
-        return;
-      }
+    const isOnline = await revisarConexion();
 
-  try {
-    //envia las credenciales al servidor
-    const data = await authService.login(email, password);
+    if (!isOnline) {
+      alertRef.current.show("Error de conexion", "No hemos detectado internet. Revisa tu red.");
+      return;
+    }
 
-    //Enviamos lo recibido al contexto de autenticacion
-    await login(data);
-    
-  } catch (error) {
-    console.error("LOGIN COMPONENT - login: ", error);
-    alertRef.current.show("Error de Autenticación", error.message);
-  }
-};
+    try {
+      //envia las credenciales al servidor
+      const data = await authService.login(email, password);
+
+      //Enviamos lo recibido al contexto de autenticacion
+      await login(data);
+
+    } catch (error) {
+      console.error("LOGIN COMPONENT - login: ", error);
+      alertRef.current.show("Error de Autenticación", error.message);
+    }
+  };
 
 
 
@@ -44,7 +47,9 @@ const handleLogin = async () => {
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
-        className="bg-slate-900 text-white p-4 rounded-lg mb-4 border border-slate-800"
+        // Opcional: También bloquear inputs si no es usable
+        editable={usable}
+        className={`bg-slate-900 text-white p-4 rounded-lg mb-4 border border-slate-800 ${!usable ? 'opacity-50' : ''}`}
       />
 
       <TextInput
@@ -53,14 +58,25 @@ const handleLogin = async () => {
         value={password}
         onChangeText={setPassword}
         secureTextEntry
-        className="bg-slate-900 text-white p-4 rounded-lg mb-8 border border-slate-800"
+        editable={usable}
+        className={`bg-slate-900 text-white p-4 rounded-lg mb-8 border border-slate-800 ${!usable ? 'opacity-50' : ''}`}
       />
 
       <TouchableOpacity
         onPress={() => handleLogin()}
-        className="bg-[#00FFFF] p-4 rounded-lg items-center mb-4"
+        disabled={!usable}
+        // CAMBIO AQUÍ: Clases dinámicas para fondo y opacidad
+        className={`p-4 rounded-lg items-center mb-4 ${usable
+            ? 'bg-[#00FFFF]'
+            : 'bg-slate-700 opacity-60' // Fondo oscuro y semitransparente cuando no es usable
+          }`}
       >
-        <Text className="text-slate-950 font-bold text-lg">ENTRAR</Text>
+        <Text className={`font-bold text-lg ${usable
+            ? 'text-slate-950' // Texto oscuro sobre fondo cian
+            : 'text-slate-400' // Texto gris sobre fondo oscuro
+          }`}>
+          ENTRAR
+        </Text>
       </TouchableOpacity>
     </View>
   )

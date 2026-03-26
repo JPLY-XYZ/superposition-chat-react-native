@@ -1,10 +1,11 @@
+import { getSettings } from "lib/auth/storage";
 import { revisarConexion } from "lib/utils";
 
 export const usersService = {
   updateUser: async (token, displayName, imageUrl) => {
     try {
-
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/users/update_me`, {
+      const { API_URL } = await getSettings();
+      const response = await fetch(`${API_URL}/users/update_me`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -27,6 +28,7 @@ export const usersService = {
 
   getUserFromServer: async (token, { id, code } = {}) => {
 
+    const { API_URL } = await getSettings();
 
     const hayInternet = await revisarConexion();
 
@@ -45,7 +47,7 @@ export const usersService = {
       }
 
 
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/users`, {
+      const response = await fetch(`${API_URL}/users`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -70,8 +72,8 @@ export const usersService = {
 
   getUserById: async (token, id) => {
     try {
-
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/users/get_user_by_id`, {
+      const { API_URL } = await getSettings();
+      const response = await fetch(`${API_URL}/users/get_user_by_id`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -97,8 +99,8 @@ export const usersService = {
 
   getUserByCode: async (token, code) => {
     try {
-
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL}/users/validate_contact_code`, {
+      const { API_URL } = await getSettings();
+      const response = await fetch(`${API_URL}/users/validate_contact_code`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -124,8 +126,9 @@ export const usersService = {
 
   getMeFromServer: async (token) => {
     try {
+      const { API_URL } = await getSettings();
       const response = await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL}/users/get_me`,
+        `${API_URL}/users/get_me`,
         {
           method: 'GET',
           headers: {
@@ -149,8 +152,9 @@ export const usersService = {
 
   setPushToken: async (token, pushToken) => {
     try {
+      const { API_URL } = await getSettings();
       const response = await fetch(
-        `${process.env.EXPO_PUBLIC_API_URL}/users/upsert_push_token`,
+        `${API_URL}/users/upsert_push_token`,
         {
           method: 'PUT',
           headers: {

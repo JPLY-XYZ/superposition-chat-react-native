@@ -1,15 +1,13 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { useAuth } from './AuthContext';
-// IMPORTANTE: Importa también ChatQueries
 import { MessageQueries, ChatQueries, UserQueries } from 'lib/database/db';
 import { usersService } from 'services/usersService';
 import { DeviceEventEmitter } from 'react-native';
-import { messagesService } from 'services/messageService';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { revisarConexion } from 'lib/utils';
 import { decryptMessage } from 'services/cryptoService';
 import { performGlobalSync } from 'components/managers/syncManager';
+import { getSettings } from "lib/auth/storage"; // Importación necesaria
 
 const SocketContext = createContext();
 
@@ -24,208 +22,181 @@ export const SocketProvider = ({ children }) => {
     const { user, token } = useAuth();
     const [socket, setSocket] = useState(null);
     const [online, setOnline] = useState(false);
-
-    //almacena los ids de los usuarios online
     const [onlineUserIds, setOnlineUserIds] = useState(new Set());
-
     const [hayConexion, setHayConexion] = useState(false);
 
+    // 1. Comprobar conexión inicial
     useEffect(() => {
         revisarConexion().then((res) => {
             setHayConexion(res);
         });
     }, []);
 
+    // 2. Efecto principal de Socket
     useEffect(() => {
+        let activeSocket = null;
 
-        //si hay usuario y token continuamos
-        if (user && token && hayConexion) {
+        const initializeSocket = async () => {
+            // Si hay usuario, token y la red/server responden
+            if (user && token && hayConexion) {
 
-            //creamos el socket hacia el servidor
-            const newSocket = io(process.env.EXPO_PUBLIC_SOCKET_URL, {
-                auth: { token: token },
-                transports: ['websocket'],
-            });
+                // --- SACAR WS_URL DE AJUSTES ---
+                const { WS_URL } = await getSettings();
 
-            //cuando se conecta el socket
-            newSocket.on('connect', () => {
-                //Pedimos la lista de usuarios online
-
-                console.log("SOCKET-CONTEXT | CONNECTED");
-
-                newSocket.emit('get_online_users');
-
-                //tiempo de espera para comprobar si seguimos conectados tras una conexión
-                setTimeout(() => {
-                    if (newSocket.connected) {
-                        setOnline(true);
-                        performGlobalSync(newSocket, token, user)
-                    }
-                }, 900);
-
-            });
-
-            //cuando recibimos la lista de usuarios online
-            newSocket.on('all_online_users', (usersArray) => {
-                //actualizamos la lista de usuarios online
-                setOnlineUserIds(new Set(usersArray));
-            });
-
-            //cuando recibimos el estado de un usuario
-            newSocket.on('user_status_change', ({ userId, status }) => {
-                //actualizamos la lista de usuarios online
-                setOnlineUserIds((prev) => {
-                    const newSet = new Set(prev);
-                    //si el usuario es online lo añadimos
-                    if (status === 'online') {
-                        newSet.add(userId);
-                    } else {
-                        //si el usuario es offline lo eliminamos
-                        newSet.delete(userId);
-                    }
-                    return newSet;
-                });
-            });
-
-            //cuando se desconecta el socket
-            newSocket.on('disconnect', async () => {
-                //marcamos la bandera online como false
-                setOnline(false);
-                //vaciamos la lista de usuarios online
-                setOnlineUserIds(new Set());
-                //guardamos el timestamp de la ultima conexion
-                // await AsyncStorage.setItem('@lastConexionTimestamp', String(Date.now()));
-            });
-
-            // ------------------------------------------------
-            // 1. ESCUCHAR MENSAJES ENTRANTES
-            // ------------------------------------------------
-            newSocket.on('new_message', async (serverMsg) => {
-                try {
-                    const decryptedText = await decryptMessage(serverMsg.content);
-
-                    // LÓGICA DE ESTADO COHERENTE:
-                    // Si el mensaje lo envié YO (desde otro dispositivo), el estado inicial es 'sent'
-                    // Si lo envió OTRO, el estado es 'received'
-                    const initialStatus = serverMsg.senderId === user.id ? 'sent' : 'received';
-
-                    await MessageQueries.saveMessage({
-                        messageId: serverMsg.id,
-                        conversationId: serverMsg.conversationId,
-                        senderId: serverMsg.senderId,
-                        content: decryptedText,
-                        createdAt: serverMsg.createdAt,
-                        status: initialStatus, // <--- CAMBIO AQUÍ
-                        isSynced: 1,
-                        type: serverMsg.type || 'text'
-                    });
-
-                    console.log("mensaje de :",serverMsg.senderId)
-
-                    await ChatQueries.setLastConversationMessage(serverMsg.conversationId, {
-                        text: decryptedText,
-                        senderId: serverMsg.senderId,
-                        status: initialStatus
-                    });
-
-                    // SOLO emitimos el status_update si el mensaje NO es nuestro
-                    if (serverMsg.senderId !== user.id) {
-                        newSocket.emit('message_status_update', {
-                            messageId: serverMsg.id,
-                            status: 'received',
-                            userId: user.id,
-                            senderId: serverMsg.senderId
-                        });
-                    }
-
-                    DeviceEventEmitter.emit('event_refresh_messages');
-                    DeviceEventEmitter.emit('event_refresh_conversations');
-                } catch (e) {
-                    console.error("SOCKET-CONTEXT | ERROR EN NEW_MESSAGE -> ", e);
+                if (!WS_URL) {
+                    console.error("SOCKET-CONTEXT | No hay WS_URL configurada");
+                    return;
                 }
-            });
 
-            // ------------------------------------------------
-            // 2. ESCUCHAR ESTADOS DE MENSAJES
-            // ------------------------------------------------
-            newSocket.on('message_status_changed', async (serverMsg) => {
-                try {
-                    // 1. Buscamos el estado actual en la base de datos local
-                    const localMsg = await MessageQueries.getMessageById(serverMsg.messageId);
+                // Creamos el socket con la URL dinámica
+                const newSocket = io(WS_URL, {
+                    auth: { token: token },
+                    transports: ['websocket'],
+                });
 
-                    // 2. Solo actualizamos si el nuevo estado es superior (ej: de sent a received)
-                    if (shouldUpdateStatus(localMsg?.status, serverMsg.status)) {
-                        await MessageQueries.updateMessageStatus({
-                            messageId: serverMsg.messageId,
-                            status: serverMsg.status.toLowerCase()
+                activeSocket = newSocket;
+
+                // --- LISTENERS DEL SOCKET ---
+
+                newSocket.on('connect', () => {
+                    console.log("SOCKET-CONTEXT | CONNECTED TO:", WS_URL);
+                    newSocket.emit('get_online_users');
+
+                    setTimeout(() => {
+                        if (newSocket.connected) {
+                            setOnline(true);
+                            performGlobalSync(newSocket, token, user);
+                        }
+                    }, 900);
+                });
+
+                newSocket.on('all_online_users', (usersArray) => {
+                    setOnlineUserIds(new Set(usersArray));
+                });
+
+                newSocket.on('user_status_change', ({ userId, status }) => {
+                    setOnlineUserIds((prev) => {
+                        const newSet = new Set(prev);
+                        if (status === 'online') {
+                            newSet.add(userId);
+                        } else {
+                            newSet.delete(userId);
+                        }
+                        return newSet;
+                    });
+                });
+
+                newSocket.on('disconnect', async () => {
+                    setOnline(false);
+                    setOnlineUserIds(new Set());
+                });
+
+                // 1. ESCUCHAR MENSAJES ENTRANTES
+                newSocket.on('new_message', async (serverMsg) => {
+                    try {
+                        const decryptedText = await decryptMessage(serverMsg.content);
+                        const initialStatus = serverMsg.senderId === user.id ? 'sent' : 'received';
+
+                        await MessageQueries.saveMessage({
+                            messageId: serverMsg.id,
+                            conversationId: serverMsg.conversationId,
+                            senderId: serverMsg.senderId,
+                            content: decryptedText,
+                            createdAt: serverMsg.createdAt,
+                            status: initialStatus,
+                            isSynced: 1,
+                            type: serverMsg.type || 'text'
                         });
+
+                        await ChatQueries.setLastConversationMessage(serverMsg.conversationId, {
+                            text: decryptedText,
+                            senderId: serverMsg.senderId,
+                            status: initialStatus
+                        });
+
+                        if (serverMsg.senderId !== user.id) {
+                            newSocket.emit('message_status_update', {
+                                messageId: serverMsg.id,
+                                status: 'received',
+                                userId: user.id,
+                                senderId: serverMsg.senderId
+                            });
+                        }
 
                         DeviceEventEmitter.emit('event_refresh_messages');
                         DeviceEventEmitter.emit('event_refresh_conversations');
+                    } catch (e) {
+                        console.error("SOCKET-CONTEXT | ERROR EN NEW_MESSAGE -> ", e);
                     }
-                } catch (e) {
-                    console.error("SOCKET-CONTEXT | ERROR EN MESSAGE_STATUS_CHANGED -> ", e);
-                }
-            });
+                });
 
-            // ------------------------------------------------
-            // 2. ESCUCHAR NUEVAS CONVERSACIONES
-            // ------------------------------------------------
-            newSocket.on('new_conversation', async (chatData) => {
-                try {
-
-
-                    //obtenemos todos los ids de los participantes
-                    const participantIds = chatData.participants.map(p => p.userId);
-
-                    console.log("SOCKET-CONTEXT | NEW_CONVERSATION | participantIds -> ", participantIds);
-
-                    for (const id of participantIds) {
-                        if (id !== user.id) {
-                            const userData = await usersService.getUserFromServer(token, { id: id });
-                            console.log("SOCKET-CONTEXT | NEW_CONVERSATION | userData -> ", userData);
-                            //guardamos los usuarios en la base de datos local
-                            await UserQueries.upsertUser({ ...userData, isMe: 0 });
+                // 2. ESCUCHAR ESTADOS DE MENSAJES
+                newSocket.on('message_status_changed', async (serverMsg) => {
+                    try {
+                        const localMsg = await MessageQueries.getMessageById(serverMsg.messageId);
+                        if (shouldUpdateStatus(localMsg?.status, serverMsg.status)) {
+                            await MessageQueries.updateMessageStatus({
+                                messageId: serverMsg.messageId,
+                                status: serverMsg.status.toLowerCase()
+                            });
+                            DeviceEventEmitter.emit('event_refresh_messages');
+                            DeviceEventEmitter.emit('event_refresh_conversations');
                         }
+                    } catch (e) {
+                        console.error("SOCKET-CONTEXT | ERROR EN MESSAGE_STATUS_CHANGED -> ", e);
                     }
+                });
 
-                    console.log("SOCKET-CONTEXT | NEW_CONVERSATION | chatData -> ", chatData);
+                // 3. ESCUCHAR NUEVAS CONVERSACIONES
+                newSocket.on('new_conversation', async (chatData) => {
+                    try {
+                        const participantIds = chatData.participants.map(p => p.userId);
+                        for (const id of participantIds) {
+                            if (id !== user.id) {
+                                const userData = await usersService.getUserFromServer(token, { id: id });
+                                await UserQueries.upsertUser({ ...userData, isMe: 0 });
+                            }
+                        }
 
-                    const preSaveConversation = {
-                        id: chatData.id,
-                        type: chatData.type,
-                        participants: participantIds,
-                        name: chatData?.name || "",
-                        imageUrl: chatData?.imageUrl || "",
-                        updatedAt: chatData.updatedAt,
-                        isSynced: 1,
-                    };
+                        const preSaveConversation = {
+                            id: chatData.id,
+                            type: chatData.type,
+                            participants: participantIds,
+                            name: chatData?.name || "",
+                            imageUrl: chatData?.imageUrl || "",
+                            updatedAt: chatData.updatedAt,
+                            isSynced: 1,
+                        };
 
-                    //guardamos la conversacion en la base de datos local
-                    await ChatQueries.upsertConversation(preSaveConversation, user.id);
+                        await ChatQueries.upsertConversation(preSaveConversation, user.id);
+                        DeviceEventEmitter.emit('event_refresh_conversations');
+                    } catch (e) {
+                        console.error("SOCKET-CONTEXT | ERROR EN NEW_CONVERSATION -> ", e);
+                    }
+                });
 
-                    //emitimos un evento para refrescar los chats
-                    DeviceEventEmitter.emit('event_refresh_conversations');
-                } catch (e) {
-                    console.error("SOCKET-CONTEXT | ERROR EN NEW_CONVERSATION -> ", e);
+                setSocket(newSocket);
+
+            } else {
+                // Limpieza si se cierra sesión o se pierde conexión lógica
+                if (socket) {
+                    socket.close();
+                    setSocket(null);
+                    setOnline(false);
+                    setOnlineUserIds(new Set());
                 }
-            });
-
-            //guardamos el socket en el estado
-            setSocket(newSocket);
-
-            //limpiamos el socket cuando se desmonta el componente
-            return () => newSocket.close();
-        } else {
-            //si no hay usuario o token, cerramos el socket     
-            if (socket) {
-                socket.close();
-                setSocket(null);
-                setOnline(false);
-                setOnlineUserIds(new Set());
             }
-        }
-    }, [user, token]);
+        };
+
+        initializeSocket();
+
+        // Limpieza al desmontar o cambiar dependencias
+        return () => {
+            if (activeSocket) {
+                activeSocket.close();
+            }
+        };
+    }, [user, token, hayConexion]);
 
     return (
         <SocketContext.Provider value={{ socket, online, onlineUserIds, setOnlineUserIds }}>
