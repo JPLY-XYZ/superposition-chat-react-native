@@ -196,7 +196,7 @@ export const SocketProvider = ({ children }) => {
                 activeSocket.close();
             }
         };
-    }, [user, token, hayConexion]);
+    }, [user?.id, token, hayConexion]);
 
     return (
         <SocketContext.Provider value={{ socket, online, onlineUserIds, setOnlineUserIds }}>

@@ -37,7 +37,8 @@
       },
       "package": "com.jply_xyz.superpositionchat",
       "googleServicesFile": "./google-services.json",
-      "useNextNotificationsApi": true
+      "useNextNotificationsApi": true,
+      "usesCleartextTraffic": true
     },
     "extra": {
       "router": {},
